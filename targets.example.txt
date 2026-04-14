@@ -1,0 +1,15 @@
+# Target companies — add job URLs to apply to
+# Lines starting with # are ignored
+# One URL per line — can be job posting or career page
+
+# Example: Greenhouse
+# https://job-boards.greenhouse.io/company/jobs/123456
+
+# Example: Ashby
+# https://jobs.ashbyhq.com/company/job-uuid
+
+# Example: Lever
+# https://jobs.lever.co/company/job-id
+
+# Example: Workday
+# https://careers.company.com/us/en/job/R12345/Job-Title

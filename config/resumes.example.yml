@@ -1,0 +1,25 @@
+# Resume picker configuration
+# The engine matches JD keywords to pick the best resume variant.
+# If only one resume, it's always used.
+
+default: general
+
+resumes:
+  - id: general
+    file: resumes/my-resume.pdf
+    label: "General"
+    keywords:
+      - software engineer
+      - backend
+      - frontend
+      - full stack
+
+  # Add more resume variants for different role types:
+  # - id: ml-focused
+  #   file: resumes/ml-resume.pdf
+  #   label: "ML / AI"
+  #   keywords:
+  #     - machine learning
+  #     - data science
+  #     - ml engineer
+  #     - ai platform

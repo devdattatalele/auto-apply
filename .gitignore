@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# User data (never commit)
+.env
+config/profile.yml
+config/resumes.yml
+targets.txt
+resumes/*.pdf
+data/applied.csv
+data/queue.csv
+data/learnings.json
+
+# Generated files
+forms/*
+!forms/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

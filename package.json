@@ -1,0 +1,45 @@
+{
+  "name": "auto-apply",
+  "version": "1.0.0",
+  "description": "Autonomous job application engine — Playwright-based form filler with self-learning, OTP handling, and multi-ATS support",
+  "type": "module",
+  "bin": {
+    "auto-apply": "./cli.mjs"
+  },
+  "scripts": {
+    "setup": "node cli.mjs setup",
+    "scan": "node cli.mjs scan",
+    "fill": "node cli.mjs fill",
+    "apply": "node cli.mjs apply",
+    "batch": "node cli.mjs batch",
+    "queue": "node cli.mjs queue",
+    "status": "node cli.mjs status"
+  },
+  "keywords": [
+    "job-application",
+    "automation",
+    "playwright",
+    "form-filler",
+    "ats",
+    "greenhouse",
+    "ashby",
+    "lever",
+    "workday",
+    "claude-code",
+    "self-learning"
+  ],
+  "author": "Devdatta Talele",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devdatta-t/auto-apply.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "imapflow": "^1.3.1",
+    "js-yaml": "^4.1.1",
+    "playwright": "^1.58.1"
+  }
+}

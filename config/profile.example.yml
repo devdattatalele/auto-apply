@@ -1,0 +1,46 @@
+# Auto-apply profile — fill in your details
+# This file is used to auto-generate fill plans for job applications.
+
+personal:
+  first_name: "Jane"
+  last_name: "Doe"
+  email: "jane.doe@gmail.com"
+  phone: "5551234567"
+  linkedin: "https://www.linkedin.com/in/janedoe"
+  location: "San Francisco, California"
+  city: "San Francisco"
+  state: "California"
+  postal_code: "94105"
+  address_line1: ""
+  address_line2: ""
+  country: "United States +1"
+  country_phone_code: "United States of America (+1)"
+
+# EEO fields (US-based applicant)
+eeo:
+  gender: "Female"
+  hispanic_latino: "No"
+  race: "White"
+  veteran_status: "I am not a protected veteran"
+  disability_status: "I do not want to answer"
+
+# Work authorization
+work_auth:
+  authorized_us: "Yes"
+  sponsorship_needed: "No"
+  visa_status: ""
+  office_willing: "Yes"
+  willing_to_relocate: "Yes"
+
+education:
+  degree: "Bachelor of Science"
+  major: "Computer Science"
+  university: "Stanford University"
+  graduation_year: "2020"
+
+experience:
+  years: "5"
+  current_company: "Google"
+  current_title: "Software Engineer"
+  salary_expectation: ""
+  start_date: ""
