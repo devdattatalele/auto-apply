@@ -1,0 +1,13 @@
+# Don't publish user data or generated files
+config/profile.yml
+config/resumes.yml
+.env
+targets.txt
+resumes/*.pdf
+data/
+forms/
+screenshots/
+node_modules/
+.git/
+.DS_Store
+package-lock.json

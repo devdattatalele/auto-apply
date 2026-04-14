@@ -6,6 +6,18 @@
   "bin": {
     "auto-apply": "./cli.mjs"
   },
+  "files": [
+    "cli.mjs",
+    "lib/",
+    "config/profile.example.yml",
+    "config/resumes.example.yml",
+    "targets.example.txt",
+    ".env.example",
+    ".claude/",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "setup": "node cli.mjs setup",
     "scan": "node cli.mjs scan",
@@ -13,7 +25,8 @@
     "apply": "node cli.mjs apply",
     "batch": "node cli.mjs batch",
     "queue": "node cli.mjs queue",
-    "status": "node cli.mjs status"
+    "status": "node cli.mjs status",
+    "postinstall": "npx playwright install chromium 2>/dev/null || echo 'Run: npx playwright install chromium'"
   },
   "keywords": [
     "job-application",
@@ -26,13 +39,21 @@
     "lever",
     "workday",
     "claude-code",
-    "self-learning"
+    "self-learning",
+    "job-search",
+    "career",
+    "apply",
+    "npx"
   ],
   "author": "Devdatta Talele",
   "license": "MIT",
+  "homepage": "https://github.com/devdattatalele/auto-apply#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devdatta-t/auto-apply.git"
+    "url": "git+https://github.com/devdattatalele/auto-apply.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devdattatalele/auto-apply/issues"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -59,22 +59,28 @@ node cli.mjs apply https://job-boards.greenhouse.io/company/jobs/123
 
 ## Quick Start
 
-### 1. Clone & Install
+### Option A: npx (recommended)
 
 ```bash
-git clone https://github.com/YOUR_USER/auto-apply.git
+mkdir my-job-search && cd my-job-search
+npx auto-apply setup
+```
+
+That's it. Edit `config/profile.yml`, add your resume to `resumes/`, and start applying.
+
+### Option B: Clone & Install
+
+```bash
+git clone https://github.com/devdattatalele/auto-apply.git
 cd auto-apply
 npm install
 npx playwright install chromium
+node cli.mjs setup
 ```
 
 ### 2. Create Your Profile
 
-```bash
-node cli.mjs setup
-```
-
-This copies `config/profile.example.yml` → `config/profile.yml`. Edit it with your details:
+`setup` copies `config/profile.example.yml` → `config/profile.yml`. Edit it with your details:
 
 ```yaml
 personal:
@@ -151,13 +157,15 @@ APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 ```bash
 # Single application
-node cli.mjs apply https://job-boards.greenhouse.io/company/jobs/123
+npx auto-apply apply https://job-boards.greenhouse.io/company/jobs/123
 
 # Or use the queue
-node cli.mjs queue add https://careers.adobe.com/job/R167447 Adobe
-node cli.mjs queue add https://jobs.lever.co/stripe/abc123 Stripe
-node cli.mjs batch
+npx auto-apply queue add https://careers.adobe.com/job/R167447 Adobe
+npx auto-apply queue add https://jobs.lever.co/stripe/abc123 Stripe
+npx auto-apply batch
 ```
+
+> If you cloned the repo, use `node cli.mjs` instead of `npx auto-apply`.
 
 ---
 

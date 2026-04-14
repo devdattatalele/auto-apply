@@ -83,14 +83,18 @@ You can also create it manually — see config/profile.example.yml.
   console.log('Create config/profile.yml with your details.');
   console.log('Use config/profile.example.yml as a template.\n');
 
+  // Look for example in cwd first, then in package directory (for npx)
   const examplePath = resolve(process.cwd(), 'config', 'profile.example.yml');
-  if (existsSync(examplePath)) {
-    const example = await readFile(examplePath, 'utf-8');
+  const pkgExamplePath = resolve(__dirname, 'config', 'profile.example.yml');
+  const foundExample = existsSync(examplePath) ? examplePath : existsSync(pkgExamplePath) ? pkgExamplePath : null;
+
+  if (foundExample) {
+    const example = await readFile(foundExample, 'utf-8');
     await mkdir(resolve(process.cwd(), 'config'), { recursive: true });
     await writeFile(profilePath, example);
     console.log('📄 Copied profile.example.yml → profile.yml');
     console.log('   Edit config/profile.yml with your details, then run:');
-    console.log('   node cli.mjs apply <job-url>\n');
+    console.log('   auto-apply apply <job-url>\n');
   } else {
     console.log('No profile.example.yml found. Creating a blank profile...');
     const blank = `# Auto-apply profile
@@ -130,6 +134,49 @@ experience:
     await writeFile(profilePath, blank);
     console.log('📄 Created blank config/profile.yml — fill in your details.');
   }
+
+  // Copy resumes.example.yml if missing
+  const resumesPath = resolve(process.cwd(), 'config', 'resumes.yml');
+  if (!existsSync(resumesPath)) {
+    const resumeExample = resolve(__dirname, 'config', 'resumes.example.yml');
+    const resumeLocal = resolve(process.cwd(), 'config', 'resumes.example.yml');
+    const src = existsSync(resumeLocal) ? resumeLocal : existsSync(resumeExample) ? resumeExample : null;
+    if (src) {
+      await writeFile(resumesPath, await readFile(src, 'utf-8'));
+      console.log('📄 Copied resumes.example.yml → resumes.yml');
+    }
+  }
+
+  // Copy .env.example if no .env
+  const envPath = resolve(process.cwd(), '.env');
+  if (!existsSync(envPath)) {
+    const envExample = resolve(__dirname, '.env.example');
+    const envLocal = resolve(process.cwd(), '.env.example');
+    const src = existsSync(envLocal) ? envLocal : existsSync(envExample) ? envExample : null;
+    if (src) {
+      await writeFile(envPath, await readFile(src, 'utf-8'));
+      console.log('📄 Copied .env.example → .env (edit with your Gmail App Password for OTP)');
+    }
+  }
+
+  // Create directories
+  await mkdir(resolve(process.cwd(), 'resumes'), { recursive: true });
+  await mkdir(resolve(process.cwd(), 'forms'), { recursive: true });
+  await mkdir(resolve(process.cwd(), 'screenshots'), { recursive: true });
+  await mkdir(resolve(process.cwd(), 'data'), { recursive: true });
+
+  console.log(`
+✅ Setup complete! Next steps:
+
+  1. Edit config/profile.yml with your details
+  2. Edit config/resumes.yml and add your PDF to resumes/
+  3. Edit .env with your Gmail App Password (for OTP)
+  4. Run: auto-apply apply <job-url>
+
+Or add URLs to queue:
+  auto-apply queue add <url> <company>
+  auto-apply batch
+`);
 }
 
 // ─── SCAN ───────────────────────────────────────────────────────────────────
