@@ -1,5 +1,5 @@
 {
-  "name": "auto-apply",
+  "name": "job-auto-apply",
   "version": "1.0.0",
   "description": "Autonomous job application engine — Playwright-based form filler with self-learning, OTP handling, and multi-ATS support",
   "type": "module",

@@ -63,7 +63,9 @@ node cli.mjs apply https://job-boards.greenhouse.io/company/jobs/123
 
 ```bash
 mkdir my-job-search && cd my-job-search
-npx auto-apply setup
+npx job-auto-apply setup
+# or install globally:
+npm i -g job-auto-apply
 ```
 
 That's it. Edit `config/profile.yml`, add your resume to `resumes/`, and start applying.
@@ -157,15 +159,15 @@ APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 ```bash
 # Single application
-npx auto-apply apply https://job-boards.greenhouse.io/company/jobs/123
+npx job-auto-apply apply https://job-boards.greenhouse.io/company/jobs/123
 
 # Or use the queue
-npx auto-apply queue add https://careers.adobe.com/job/R167447 Adobe
-npx auto-apply queue add https://jobs.lever.co/stripe/abc123 Stripe
-npx auto-apply batch
+npx job-auto-apply queue add https://careers.adobe.com/job/R167447 Adobe
+npx job-auto-apply queue add https://jobs.lever.co/stripe/abc123 Stripe
+npx job-auto-apply batch
 ```
 
-> If you cloned the repo, use `node cli.mjs` instead of `npx auto-apply`.
+> If you cloned the repo, use `node cli.mjs` instead of `npx job-auto-apply`.
 
 ---
 
