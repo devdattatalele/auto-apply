@@ -12,6 +12,7 @@
  *   queue add <url> [company] Add URL to application queue
  *   queue list               Show pending/applied/failed queue entries
  *   queue remove <url>       Remove URL from queue
+ *   list                     Show all applied jobs + what's left to apply
  *   status                   Show application stats
  */
 
@@ -24,7 +25,7 @@ import { fillForm } from './lib/engine.mjs';
 import { loadProfile, generatePlan, pickResume } from './lib/planner.mjs';
 import { applyLearnings, getStats } from './lib/learner.mjs';
 import { extractJDText, detectATS } from './lib/discovery.mjs';
-import { loadQueue, saveQueue, addToQueue, getPendingFromQueue } from './lib/reporter.mjs';
+import { loadQueue, saveQueue, addToQueue, getPendingFromQueue, loadApplied } from './lib/reporter.mjs';
 import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -455,6 +456,105 @@ Learnings:
   }
 }
 
+// ─── LIST ───────────────────────────────────────────────────────────────────
+async function cmdList() {
+  const applied = await loadApplied();
+  const queue = await loadQueue();
+
+  console.log(`
+╔════════════════════════════════════════════════════════╗
+║          auto-apply — Application Dashboard           ║
+╚════════════════════════════════════════════════════════╝`);
+
+  // ── Applied jobs ──
+  if (applied.length === 0) {
+    console.log('\n📋 No applications yet. Run: auto-apply apply <url>\n');
+  } else {
+    // Deduplicate by URL (keep latest status)
+    const byUrl = new Map();
+    for (const a of applied) {
+      const key = a.url;
+      if (!byUrl.has(key) || a.status === 'submitted') byUrl.set(key, a);
+    }
+    const unique = [...byUrl.values()];
+
+    const submitted = unique.filter(a => a.status === 'submitted');
+    const failed = unique.filter(a => a.status !== 'submitted');
+
+    console.log(`\n✅ APPLIED (${submitted.length})`);
+    console.log('─'.repeat(80));
+    if (submitted.length === 0) {
+      console.log('  (none yet)');
+    } else {
+      console.log('  Date       │ Company              │ Role                           │ ATS');
+      console.log('  ───────────┼──────────────────────┼────────────────────────────────┼──────────');
+      for (const a of submitted) {
+        const date = (a.date || '').padEnd(10);
+        const company = (a.company || '—').substring(0, 20).padEnd(20);
+        const role = (a.role || '—').substring(0, 30).padEnd(30);
+        const ats = (a.ats || '—').substring(0, 10);
+        console.log(`  ${date} │ ${company} │ ${role} │ ${ats}`);
+      }
+    }
+
+    if (failed.length > 0) {
+      console.log(`\n❌ ATTEMPTED BUT NOT SUBMITTED (${failed.length})`);
+      console.log('─'.repeat(80));
+      console.log('  Date       │ Company              │ Role                           │ Status');
+      console.log('  ───────────┼──────────────────────┼────────────────────────────────┼──────────────────');
+      for (const a of failed) {
+        const date = (a.date || '').padEnd(10);
+        const company = (a.company || '—').substring(0, 20).padEnd(20);
+        const role = (a.role || '—').substring(0, 30).padEnd(30);
+        const status = (a.status || '—').substring(0, 18);
+        console.log(`  ${date} │ ${company} │ ${role} │ ${status}`);
+      }
+    }
+  }
+
+  // ── Pending queue ──
+  const pending = queue.filter(e => e.status === 'pending');
+  if (pending.length > 0) {
+    console.log(`\n⏳ READY TO APPLY (${pending.length})`);
+    console.log('─'.repeat(80));
+    for (const e of pending) {
+      const company = e.company ? `[${e.company}] ` : '';
+      console.log(`  ${company}${e.url}`);
+    }
+    console.log(`\n  Run 'auto-apply batch' to apply to all ${pending.length} pending.`);
+  }
+
+  // ── Targets not yet applied ──
+  const targetsPath = resolve(process.cwd(), 'targets.txt');
+  if (existsSync(targetsPath)) {
+    const content = await readFile(targetsPath, 'utf-8');
+    const targetUrls = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+
+    const appliedUrls = new Set(applied.map(a => a.url));
+    const queuedUrls = new Set(queue.map(e => e.url));
+    const remaining = targetUrls.filter(u => !appliedUrls.has(u) && !queuedUrls.has(u));
+
+    if (remaining.length > 0) {
+      console.log(`\n📌 TARGETS NOT YET APPLIED (${remaining.length} of ${targetUrls.length})`);
+      console.log('─'.repeat(80));
+      for (const url of remaining.slice(0, 15)) {
+        console.log(`  ${url}`);
+      }
+      if (remaining.length > 15) console.log(`  ... and ${remaining.length - 15} more`);
+      console.log(`\n  Add to queue: auto-apply queue add <url> [company]`);
+    } else if (targetUrls.length > 0) {
+      console.log(`\n🎉 All ${targetUrls.length} targets in targets.txt have been applied or queued!`);
+    }
+  }
+
+  // ── Summary ──
+  const totalApplied = applied.filter(a => a.status === 'submitted').length;
+  const totalAttempted = new Set(applied.map(a => a.url)).size;
+  console.log(`\n${'═'.repeat(80)}`);
+  console.log(`  Total: ${totalApplied} submitted, ${totalAttempted} attempted, ${pending.length} pending`);
+  console.log(`${'═'.repeat(80)}\n`);
+}
+
 // ─── HELP ───────────────────────────────────────────────────────────────────
 function showHelp() {
   console.log(`
@@ -470,6 +570,7 @@ Usage:
   node cli.mjs queue list                  Show queue entries
   node cli.mjs queue remove <url>          Remove URL from queue
   node cli.mjs queue clear                 Clear completed/failed entries
+  node cli.mjs list                        Show all applied jobs + what's left
   node cli.mjs status                      Show stats & learnings
 
 Options:
@@ -497,6 +598,7 @@ async function main() {
     case 'apply':  await cmdApply(positionalArgs[0]); break;
     case 'batch':  await cmdBatch(positionalArgs[0]); break;
     case 'queue':  await cmdQueue(positionalArgs[0], ...positionalArgs.slice(1)); break;
+    case 'list':   await cmdList(); break;
     case 'status': await cmdStatus(); break;
     default:       showHelp();
   }
