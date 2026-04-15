@@ -3,7 +3,7 @@ name: auto-apply
 description: Autonomous job application engine — scan forms, fill fields, submit applications, handle OTP
 user_invocable: true
 args: command
-argument-hint: "[apply <url> | scan <url> | fill <url> | list | queue add <url> | queue list | batch | status | setup]"
+argument-hint: "[apply <url> | scan <url> | fill <url> | queue add <url> | queue list | list | batch | status | setup]"
 ---
 
 # auto-apply — Autonomous Job Application Engine
@@ -22,8 +22,8 @@ Determine the command from `{{command}}`:
 | `queue list` | Show queue with status |
 | `queue remove <url>` | Remove URL from queue |
 | `queue clear` | Clear completed/failed entries |
-| `list` | Show all applied jobs + what's left to apply |
 | `batch [file]` | Process pending queue or URLs from file |
+| `list` | Show all applied jobs, pending queue, and remaining targets |
 | `status` | Show application stats & learnings |
 | `setup` | Create profile.yml from template |
 | URL (bare, no sub-command) | Auto-detect: run `apply <url>` |
@@ -87,14 +87,6 @@ node cli.mjs queue list
 node cli.mjs queue remove "<url>"
 node cli.mjs queue clear
 ```
-
-### list
-
-```bash
-node cli.mjs list
-```
-
-Shows all applied jobs (submitted vs attempted), pending queue, and remaining targets not yet applied.
 
 ### batch
 

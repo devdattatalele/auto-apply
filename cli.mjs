@@ -12,7 +12,6 @@
  *   queue add <url> [company] Add URL to application queue
  *   queue list               Show pending/applied/failed queue entries
  *   queue remove <url>       Remove URL from queue
- *   list                     Show all applied jobs + what's left to apply
  *   status                   Show application stats
  */
 
@@ -25,7 +24,7 @@ import { fillForm } from './lib/engine.mjs';
 import { loadProfile, generatePlan, pickResume } from './lib/planner.mjs';
 import { applyLearnings, getStats } from './lib/learner.mjs';
 import { extractJDText, detectATS } from './lib/discovery.mjs';
-import { loadQueue, saveQueue, addToQueue, getPendingFromQueue, loadApplied } from './lib/reporter.mjs';
+import { loadQueue, saveQueue, addToQueue, getPendingFromQueue } from './lib/reporter.mjs';
 import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -456,103 +455,131 @@ Learnings:
   }
 }
 
-// ─── LIST ───────────────────────────────────────────────────────────────────
+// ─── LIST ──────────────────────────────────────────────────────────────────
 async function cmdList() {
-  const applied = await loadApplied();
-  const queue = await loadQueue();
-
   console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║          auto-apply — Application Dashboard           ║
-╚════════════════════════════════════════════════════════╝`);
+╚════════════════════════════════════════════════════════╝
+`);
 
-  // ── Applied jobs ──
-  if (applied.length === 0) {
-    console.log('\n📋 No applications yet. Run: auto-apply apply <url>\n');
-  } else {
-    // Deduplicate by URL (keep latest status)
-    const byUrl = new Map();
-    for (const a of applied) {
-      const key = a.url;
-      if (!byUrl.has(key) || a.status === 'submitted') byUrl.set(key, a);
-    }
-    const unique = [...byUrl.values()];
-
-    const submitted = unique.filter(a => a.status === 'submitted');
-    const failed = unique.filter(a => a.status !== 'submitted');
-
-    console.log(`\n✅ APPLIED (${submitted.length})`);
-    console.log('─'.repeat(80));
-    if (submitted.length === 0) {
-      console.log('  (none yet)');
-    } else {
-      console.log('  Date       │ Company              │ Role                           │ ATS');
-      console.log('  ───────────┼──────────────────────┼────────────────────────────────┼──────────');
-      for (const a of submitted) {
-        const date = (a.date || '').padEnd(10);
-        const company = (a.company || '—').substring(0, 20).padEnd(20);
-        const role = (a.role || '—').substring(0, 30).padEnd(30);
-        const ats = (a.ats || '—').substring(0, 10);
-        console.log(`  ${date} │ ${company} │ ${role} │ ${ats}`);
-      }
-    }
-
-    if (failed.length > 0) {
-      console.log(`\n❌ ATTEMPTED BUT NOT SUBMITTED (${failed.length})`);
-      console.log('─'.repeat(80));
-      console.log('  Date       │ Company              │ Role                           │ Status');
-      console.log('  ───────────┼──────────────────────┼────────────────────────────────┼──────────────────');
-      for (const a of failed) {
-        const date = (a.date || '').padEnd(10);
-        const company = (a.company || '—').substring(0, 20).padEnd(20);
-        const role = (a.role || '—').substring(0, 30).padEnd(30);
-        const status = (a.status || '—').substring(0, 18);
-        console.log(`  ${date} │ ${company} │ ${role} │ ${status}`);
+  // 1. Load applied.csv
+  const csvPath = resolve(process.cwd(), 'data', 'applied.csv');
+  let applied = [];
+  if (existsSync(csvPath)) {
+    const raw = await readFile(csvPath, 'utf-8');
+    const lines = raw.trim().split('\n');
+    const header = lines[0] || '';
+    const isNewFormat = header.startsWith('date,company,role,url');
+    for (const line of lines.slice(1)) {
+      if (!line.trim()) continue;
+      const parts = parseCSVLine(line);
+      if (isNewFormat) {
+        applied.push({ date: parts[0], company: parts[1], role: parts[2], url: parts[3], status: parts[4], ats: parts[5] || '' });
+      } else {
+        // Old format: date,url,company,role,status,screenshot
+        applied.push({ date: parts[0], url: parts[1], company: parts[2], role: parts[3], status: parts[4], ats: '' });
       }
     }
   }
 
-  // ── Pending queue ──
+  // 2. Load queue
+  const queue = await loadQueue();
+
+  // 3. Load targets.txt
+  const targetsPath = resolve(process.cwd(), 'targets.txt');
+  let targets = [];
+  if (existsSync(targetsPath)) {
+    const raw = await readFile(targetsPath, 'utf-8');
+    targets = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  }
+
+  // Applied jobs
+  const submitted = applied.filter(a => a.status === 'submitted');
+  const attempted = applied.filter(a => a.status !== 'submitted');
+
+  if (submitted.length > 0) {
+    console.log(`✅ SUBMITTED (${submitted.length})\n`);
+    console.log('  Date       │ Company              │ Role                              │ ATS');
+    console.log('  ───────────┼──────────────────────┼───────────────────────────────────┼──────────');
+    for (const a of submitted) {
+      const company = (a.company || '—').substring(0, 20).padEnd(20);
+      const role = (a.role || '—').substring(0, 33).padEnd(33);
+      const ats = (a.ats || '—').padEnd(8);
+      console.log(`  ${a.date} │ ${company} │ ${role} │ ${ats}`);
+    }
+    console.log();
+  }
+
+  if (attempted.length > 0) {
+    console.log(`⚠️  ATTEMPTED but not submitted (${attempted.length})\n`);
+    for (const a of attempted) {
+      const company = a.company || '—';
+      const role = a.role || '—';
+      console.log(`  ${a.date}  ${a.status.padEnd(22)} ${company} — ${role}`);
+    }
+    console.log();
+  }
+
+  // Pending queue
   const pending = queue.filter(e => e.status === 'pending');
   if (pending.length > 0) {
-    console.log(`\n⏳ READY TO APPLY (${pending.length})`);
-    console.log('─'.repeat(80));
+    console.log(`⏳ PENDING in queue (${pending.length})\n`);
     for (const e of pending) {
-      const company = e.company ? `[${e.company}] ` : '';
-      console.log(`  ${company}${e.url}`);
+      const company = e.company || '—';
+      const url = e.url.length > 55 ? e.url.substring(0, 52) + '...' : e.url;
+      console.log(`  ${company.padEnd(20)} ${url}`);
     }
-    console.log(`\n  Run 'auto-apply batch' to apply to all ${pending.length} pending.`);
+    console.log(`\n  Run 'auto-apply batch' to process these.\n`);
   }
 
-  // ── Targets not yet applied ──
-  const targetsPath = resolve(process.cwd(), 'targets.txt');
-  if (existsSync(targetsPath)) {
-    const content = await readFile(targetsPath, 'utf-8');
-    const targetUrls = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-
-    const appliedUrls = new Set(applied.map(a => a.url));
-    const queuedUrls = new Set(queue.map(e => e.url));
-    const remaining = targetUrls.filter(u => !appliedUrls.has(u) && !queuedUrls.has(u));
-
-    if (remaining.length > 0) {
-      console.log(`\n📌 TARGETS NOT YET APPLIED (${remaining.length} of ${targetUrls.length})`);
-      console.log('─'.repeat(80));
-      for (const url of remaining.slice(0, 15)) {
-        console.log(`  ${url}`);
+  // Targets not yet in queue or applied
+  const appliedUrls = new Set([...applied.map(a => a.url), ...queue.map(e => e.url)]);
+  const unapplied = targets.filter(t => !appliedUrls.has(t));
+  if (unapplied.length > 0) {
+    console.log(`📋 NOT YET APPLIED from targets.txt (${unapplied.length})\n`);
+    for (const url of unapplied.slice(0, 20)) {
+      // Extract company from URL
+      try {
+        const host = new URL(url).hostname.replace(/^(www|careers|jobs|job-boards)\./i, '').replace(/\..+$/, '');
+        console.log(`  ${host.padEnd(20)} ${url}`);
+      } catch {
+        console.log(`  ${'—'.padEnd(20)} ${url}`);
       }
-      if (remaining.length > 15) console.log(`  ... and ${remaining.length - 15} more`);
-      console.log(`\n  Add to queue: auto-apply queue add <url> [company]`);
-    } else if (targetUrls.length > 0) {
-      console.log(`\n🎉 All ${targetUrls.length} targets in targets.txt have been applied or queued!`);
     }
+    if (unapplied.length > 20) console.log(`  ... and ${unapplied.length - 20} more`);
+    console.log(`\n  Add to queue: auto-apply queue add <url> [company]`);
+    console.log();
   }
 
-  // ── Summary ──
-  const totalApplied = applied.filter(a => a.status === 'submitted').length;
-  const totalAttempted = new Set(applied.map(a => a.url)).size;
-  console.log(`\n${'═'.repeat(80)}`);
-  console.log(`  Total: ${totalApplied} submitted, ${totalAttempted} attempted, ${pending.length} pending`);
-  console.log(`${'═'.repeat(80)}\n`);
+  if (applied.length === 0 && pending.length === 0 && unapplied.length === 0) {
+    console.log('📋 No applications yet. Run: auto-apply apply <url>\n');
+  }
+
+  // Summary
+  console.log('═'.repeat(80));
+  console.log(`  Total: ${submitted.length} submitted, ${attempted.length} attempted, ${pending.length} pending, ${unapplied.length} remaining`);
+  console.log('═'.repeat(80));
+}
+
+// Simple CSV line parser (duplicated from reporter for CLI standalone use)
+function parseCSVLine(line) {
+  const parts = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      parts.push(current); current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
 }
 
 // ─── HELP ───────────────────────────────────────────────────────────────────
